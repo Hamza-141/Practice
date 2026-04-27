@@ -1,0 +1,12 @@
+.git
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.egg-info
+.env
+.venv
+venv/
+staticfiles/
+carbon_emissions.db
