@@ -10,7 +10,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN python manage.py collectstatic --noinput
+# Use a placeholder key only for the build-time collectstatic step
+RUN DJANGO_SECRET_KEY=build-time-placeholder python manage.py collectstatic --noinput
 
 EXPOSE 8000
 
