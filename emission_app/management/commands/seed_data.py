@@ -6,7 +6,7 @@ Usage: python manage.py seed_data
 from django.core.management.base import BaseCommand
 from django.contrib.auth.models import User
 from datetime import date, timedelta
-from emission_app.models import ActivityType, EmissionRecord
+from emission_app.models import ActivityType, EmissionRecord, EmissionGoal
 
 
 class Command(BaseCommand):
@@ -53,36 +53,57 @@ class Command(BaseCommand):
         # --- 3. Create sample emission records ---
         if EmissionRecord.objects.exists():
             self.stdout.write('  Emission records already exist, skipping sample data.')
-            return
+        else:
+            today = date.today()
+            sample_records = [
+                ("Car Travel", 25.5, 0, "Daily commute to office"),
+                ("Electricity Usage", 150.0, 0, "Home electricity usage"),
+                ("Bus Travel", 12.0, 1, "Bus commute to downtown"),
+                ("Car Travel", 45.0, 1, "Weekend road trip"),
+                ("Air Travel", 350.0, 2, "Business flight to conference"),
+                ("Electricity Usage", 200.0, 2, "Apartment electricity"),
+                ("Train Travel", 30.0, 3, "Train commute"),
+                ("Natural Gas", 15.5, 3, "Heating - natural gas"),
+                ("Waste Production", 5.0, 4, "Household waste"),
+                ("Paper Usage", 2.5, 5, "Office paper usage"),
+                ("Water Usage", 8.0, 5, "Household water usage"),
+                ("Car Travel", 60.0, 6, "Long drive to countryside"),
+            ]
 
-        today = date.today()
-        sample_records = [
-            ("Car Travel", 25.5, 0, "Daily commute to office"),
-            ("Electricity Usage", 150.0, 0, "Home electricity usage"),
-            ("Bus Travel", 12.0, 1, "Bus commute to downtown"),
-            ("Car Travel", 45.0, 1, "Weekend road trip"),
-            ("Air Travel", 350.0, 2, "Business flight to conference"),
-            ("Electricity Usage", 200.0, 2, "Apartment electricity"),
-            ("Train Travel", 30.0, 3, "Train commute"),
-            ("Natural Gas", 15.5, 3, "Heating - natural gas"),
-            ("Waste Production", 5.0, 4, "Household waste"),
-            ("Paper Usage", 2.5, 5, "Office paper usage"),
-            ("Water Usage", 8.0, 5, "Household water usage"),
-            ("Car Travel", 60.0, 6, "Long drive to countryside"),
-        ]
+            count = 0
+            for activity_name, quantity, days_ago, description in sample_records:
+                activity = created_activities.get(activity_name)
+                if activity:
+                    EmissionRecord.objects.create(
+                        activity=activity,
+                        quantity=quantity,
+                        date=today - timedelta(days=days_ago),
+                        description=description,
+                    )
+                    count += 1
 
-        count = 0
-        for activity_name, quantity, days_ago, description in sample_records:
-            activity = created_activities.get(activity_name)
-            if activity:
-                EmissionRecord.objects.create(
-                    activity=activity,
-                    quantity=quantity,
-                    date=today - timedelta(days=days_ago),
-                    description=description,
+            self.stdout.write(self.style.SUCCESS(f'✓ {count} sample emission records created'))
+
+        # --- 4. Create sample emission goals ---
+        if EmissionGoal.objects.exists():
+            self.stdout.write('  Emission goals already exist, skipping.')
+        else:
+            today = date.today()
+            sample_goals = [
+                ("Reduce Monthly Transport", 80.0, "monthly", today.replace(day=1), None, "Target lower car and air travel"),
+                ("Weekly Electricity Cap", 20.0, "weekly", today - timedelta(days=today.weekday()), None, "Keep home energy use in check"),
+                ("Daily Commute Goal", 5.0, "daily", today, None, "Prefer bus or train over car"),
+            ]
+            for title, target, period, start, end, notes in sample_goals:
+                EmissionGoal.objects.create(
+                    title=title,
+                    target_emission=target,
+                    period=period,
+                    start_date=start,
+                    end_date=end,
+                    notes=notes,
                 )
-                count += 1
+            self.stdout.write(self.style.SUCCESS(f'✓ {len(sample_goals)} sample emission goals created'))
 
-        self.stdout.write(self.style.SUCCESS(f'✓ {count} sample emission records created'))
         self.stdout.write(self.style.SUCCESS('\n🎉 Database seeded successfully!'))
         self.stdout.write(self.style.SUCCESS('   Demo login → username: demo | password: demo1234'))

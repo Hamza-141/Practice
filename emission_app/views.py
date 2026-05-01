@@ -9,7 +9,7 @@ from django.db.models import Sum, Count, Avg
 from django.contrib import messages
 from datetime import date, timedelta
 
-from .models import ActivityType, EmissionRecord
+from .models import ActivityType, EmissionRecord, EmissionGoal
 
 
 def dashboard(request):
@@ -149,3 +149,49 @@ def delete_record(request, record_id):
         record.delete()
         messages.success(request, 'Record deleted successfully.')
     return redirect('history')
+
+
+def goals(request):
+    """Goals view for setting and tracking emission reduction targets."""
+    if request.method == 'POST':
+        action = request.POST.get('action')
+
+        if action == 'add_goal':
+            title = request.POST.get('title', '').strip()
+            target = request.POST.get('target_emission')
+            period = request.POST.get('period', 'monthly')
+            start_date = request.POST.get('start_date')
+            end_date = request.POST.get('end_date') or None
+            notes = request.POST.get('notes', '').strip()
+
+            try:
+                if not title:
+                    raise ValueError("Title is required")
+                EmissionGoal.objects.create(
+                    title=title,
+                    target_emission=float(target),
+                    period=period,
+                    start_date=start_date or date.today(),
+                    end_date=end_date,
+                    notes=notes,
+                )
+                messages.success(request, f'Goal "{title}" added successfully!')
+            except (ValueError, TypeError) as e:
+                messages.error(request, f'Invalid input: {e}')
+            return redirect('goals')
+
+        elif action == 'delete_goal':
+            goal_id = request.POST.get('goal_id')
+            goal = get_object_or_404(EmissionGoal, pk=goal_id)
+            goal.delete()
+            messages.success(request, 'Goal deleted successfully.')
+            return redirect('goals')
+
+    all_goals = EmissionGoal.objects.all()
+
+    context = {
+        'goals': all_goals,
+        'today': date.today(),
+        'period_choices': EmissionGoal.PERIOD_CHOICES,
+    }
+    return render(request, 'emission_app/goals.html', context)

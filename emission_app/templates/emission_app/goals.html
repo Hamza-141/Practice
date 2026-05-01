@@ -1,0 +1,95 @@
+{% extends 'emission_app/base.html' %}
+{% block title %}Goals – Carbon Emission Calculator{% endblock %}
+{% block content %}
+
+<div class="section-header">
+    <h2>🎯 Emission Goals</h2>
+</div>
+
+<!-- Add Goal Form -->
+<div class="card">
+    <h2>Set a New Goal</h2>
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="add_goal">
+        <div class="form-row">
+            <div class="form-group">
+                <label for="title">Goal Title</label>
+                <input type="text" id="title" name="title" placeholder="e.g. Reduce car travel" required>
+            </div>
+            <div class="form-group">
+                <label for="target_emission">Target (kg CO₂)</label>
+                <input type="number" id="target_emission" name="target_emission" step="0.01" min="0.01" placeholder="e.g. 50" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="period">Period</label>
+                <select id="period" name="period">
+                    {% for value, label in period_choices %}
+                        <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="start_date">Start Date</label>
+                <input type="date" id="start_date" name="start_date" value="{{ today|date:'Y-m-d' }}" required>
+            </div>
+        </div>
+        <div class="form-row">
+            <div class="form-group">
+                <label for="end_date">End Date <small style="color:#999">(optional)</small></label>
+                <input type="date" id="end_date" name="end_date">
+            </div>
+            <div class="form-group">
+                <label for="notes">Notes</label>
+                <input type="text" id="notes" name="notes" placeholder="Optional notes">
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Add Goal</button>
+    </form>
+</div>
+
+<!-- Goals List -->
+<div class="card">
+    <h2>Your Goals</h2>
+    {% if goals %}
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Target (kg CO₂)</th>
+                <th>Period</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Notes</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for goal in goals %}
+            <tr>
+                <td><strong>{{ goal.title }}</strong></td>
+                <td>{{ goal.target_emission }} kg CO₂</td>
+                <td><span class="badge">{{ goal.get_period_display }}</span></td>
+                <td>{{ goal.start_date }}</td>
+                <td>{{ goal.end_date|default:"—" }}</td>
+                <td>{{ goal.notes|default:"—" }}</td>
+                <td>
+                    <form method="post" style="display:inline" onsubmit="return confirm('Delete this goal?')">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="delete_goal">
+                        <input type="hidden" name="goal_id" value="{{ goal.id }}">
+                        <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p class="no-data">No goals set yet. Add one above!</p>
+    {% endif %}
+</div>
+
+{% endblock %}

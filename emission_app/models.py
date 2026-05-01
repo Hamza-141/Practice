@@ -31,3 +31,25 @@ class EmissionRecord(models.Model):
 
     class Meta:
         ordering = ['-date', '-created_at']
+
+
+class EmissionGoal(models.Model):
+    PERIOD_CHOICES = [
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+    ]
+
+    title = models.CharField(max_length=100)
+    target_emission = models.FloatField(help_text="Target kg CO2 per period")
+    period = models.CharField(max_length=10, choices=PERIOD_CHOICES, default='monthly')
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.title} ({self.target_emission} kg CO2/{self.period})"
+
+    class Meta:
+        ordering = ['-created_at']
