@@ -103,6 +103,7 @@
     <a href="{% url 'dashboard' %}" {% if request.resolver_match.url_name == 'dashboard' %}class="active"{% endif %}>Dashboard</a>
     <a href="{% url 'activity' %}" {% if request.resolver_match.url_name == 'activity' %}class="active"{% endif %}>Activity</a>
     <a href="{% url 'history' %}" {% if request.resolver_match.url_name == 'history' %}class="active"{% endif %}>History</a>
+    <a href="{% url 'goals' %}" {% if request.resolver_match.url_name == 'goals' %}class="active"{% endif %}>Goals</a>
 </nav>
 <div class="container">
     {% for message in messages %}

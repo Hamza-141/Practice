@@ -10,4 +10,5 @@ urlpatterns = [
     path('activity/', views.activity, name='activity'),
     path('history/', views.history, name='history'),
     path('delete/<int:record_id>/', views.delete_record, name='delete_record'),
+    path('goals/', views.goals, name='goals'),
 ]
