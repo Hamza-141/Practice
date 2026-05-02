@@ -1,91 +1,173 @@
 {% extends "emission_app/base.html" %}
-{% block title %}Dashboard - Carbon Emission Calculator{% endblock %}
+{% block title %}Dashboard — CO₂ Tracker{% endblock %}
 
 {% block content %}
+
+<!-- Hero banner -->
+<div style="
+    background: var(--green);
+    border-radius: 16px;
+    padding: 32px 36px;
+    margin-bottom: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    box-shadow: var(--shadow-md);
+">
+    <div style="position:absolute;inset:0;background:radial-gradient(ellipse 60% 100% at 100% 50%, rgba(255,255,255,0.06) 0%, transparent 70%);pointer-events:none;"></div>
+    <div style="position:relative;z-index:1;">
+        <div style="font-size:10px;font-weight:600;color:rgba(255,255,255,0.6);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:10px;">Carbon Emissions Dashboard</div>
+        <h1 style="font-family:var(--font-display);font-size:30px;font-weight:900;color:#fff;line-height:1.15;margin-bottom:8px;">
+            Track your carbon<br>footprint.
+        </h1>
+        <p style="font-size:13px;color:rgba(255,255,255,0.65);max-width:400px;line-height:1.7;">
+            Every kg of CO₂ you log brings you closer to understanding — and reducing — your environmental impact.
+        </p>
+    </div>
+    <div style="font-family:var(--font-mono);font-size:72px;font-weight:700;color:#fff;opacity:0.06;position:absolute;right:32px;top:50%;transform:translateY(-50%);user-select:none;letter-spacing:-2px;">CO₂</div>
+</div>
+
+<!-- Stat cards -->
 <div class="stats-grid">
     <div class="stat-card">
-        <div class="value">{{ total_emissions }}</div>
-        <div class="label">Total CO₂ (kg)</div>
+        <div class="stat-glyph">🌫</div>
+        <div class="stat-label">Total CO₂ Emitted</div>
+        <div class="stat-value">{{ total_emissions }}</div>
+        <div class="stat-unit">kilograms CO₂ equivalent</div>
     </div>
     <div class="stat-card">
-        <div class="value">{{ total_records }}</div>
-        <div class="label">Total Records</div>
+        <div class="stat-glyph">📋</div>
+        <div class="stat-label">Records Logged</div>
+        <div class="stat-value">{{ total_records }}</div>
+        <div class="stat-unit">emission entries tracked</div>
     </div>
     <div class="stat-card">
-        <div class="value">{{ avg_emission }}</div>
-        <div class="label">Avg per Record (kg CO₂)</div>
+        <div class="stat-glyph">⊘</div>
+        <div class="stat-label">Average per Entry</div>
+        <div class="stat-value">{{ avg_emission }}</div>
+        <div class="stat-unit">kg CO₂ per record</div>
     </div>
 </div>
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px;">
+<!-- Pie chart + 7-day -->
+<div class="two-col" style="align-items:start;">
+
     <div class="card">
-        <h2>📊 Emissions Last 7 Days</h2>
+        <div class="card-title">Emissions by activity</div>
+        {% if top_activities %}
+        <div style="display:flex;align-items:center;gap:24px;">
+            <canvas id="emissionPie" width="170" height="170" style="flex-shrink:0;"></canvas>
+            <div id="pieLegend" style="flex:1;display:flex;flex-direction:column;gap:10px;"></div>
+        </div>
+        <script>
+        (function() {
+            const data = [
+                {% for a in top_activities %}
+                { label: "{{ a.activity__activity_name }}", value: {{ a.total|floatformat:2 }} }{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ];
+            const COLORS = ['#166534','#15803D','#22C55E','#4ADE80','#86EFAC','#BBF7D0'];
+            const total  = data.reduce((s,d) => s + d.value, 0);
+            const canvas = document.getElementById('emissionPie');
+            const ctx    = canvas.getContext('2d');
+            const cx = 85, cy = 85, r = 74, gap = 0.025;
+            let angle = -Math.PI / 2;
+            data.forEach((d, i) => {
+                const slice = (d.value / total) * (2 * Math.PI);
+                ctx.beginPath();
+                ctx.moveTo(cx, cy);
+                ctx.arc(cx, cy, r, angle + gap, angle + slice - gap);
+                ctx.closePath();
+                ctx.fillStyle = COLORS[i % COLORS.length];
+                ctx.fill();
+                angle += slice;
+            });
+            // hole
+            ctx.beginPath();
+            ctx.arc(cx, cy, 44, 0, 2 * Math.PI);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fill();
+            // centre label
+            ctx.fillStyle = '#6B7280';
+            ctx.font = '500 9px DM Sans,sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('TOTAL', cx, cy - 5);
+            ctx.fillStyle = '#166534';
+            ctx.font = '600 14px JetBrains Mono,monospace';
+            ctx.fillText(total.toFixed(1) + ' kg', cx, cy + 12);
+            // legend
+            const legend = document.getElementById('pieLegend');
+            data.forEach((d, i) => {
+                const pct = ((d.value / total) * 100).toFixed(1);
+                const row = document.createElement('div');
+                row.style.cssText = 'display:flex;align-items:center;gap:8px;';
+                row.innerHTML = `
+                    <div style="width:10px;height:10px;border-radius:3px;background:${COLORS[i % COLORS.length]};flex-shrink:0;"></div>
+                    <div style="flex:1;font-size:12px;color:#6B7280;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${d.label}</div>
+                    <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#166534;font-weight:600;">${pct}%</div>
+                `;
+                legend.appendChild(row);
+            });
+        })();
+        </script>
+        {% else %}
+        <p class="no-data">No data yet.<br><a href="{% url 'activity' %}">Log your first emission →</a></p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <div class="card-title">Last 7 days</div>
         {% if daily_data %}
+        <div class="table-wrap">
         <table>
-            <thead>
-                <tr><th>Date</th><th>CO₂ (kg)</th></tr>
-            </thead>
+            <thead><tr><th>Date</th><th>CO₂ (kg)</th></tr></thead>
             <tbody>
                 {% for day in daily_data %}
                 <tr>
-                    <td>{{ day.date }}</td>
-                    <td>{{ day.total }}</td>
+                    <td style="font-family:var(--font-mono);">{{ day.date }}</td>
+                    <td><strong style="font-family:var(--font-mono);color:var(--green);">{{ day.total }}</strong></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
+        </div>
         {% else %}
-    <p class="no-data">No data for the last 7 days.</p>
+        <p class="no-data">No data in the last 7 days.</p>
         {% endif %}
     </div>
 
-    <div class="card">
-        <h2>🏭 Top Activities by Emissions</h2>
-        {% if top_activities %}
-        <table>
-            <thead>
-                <tr><th>Activity</th><th>Records</th><th>CO₂ (kg)</th></tr>
-            </thead>
-            <tbody>
-                {% for a in top_activities %}
-                <tr>
-                    <td>{{ a.activity__activity_name }}</td>
-                    <td><span class="badge">{{ a.count }}</span></td>
-                    <td>{{ a.total|floatformat:2 }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        {% else %}
-        <p class="no-data">No activity data yet. <a href="{% url 'activity' %}">Add records</a>.</p>
-        {% endif %}
-    </div>
 </div>
 
+<!-- Recent records -->
 <div class="card">
-    <div class="section-header">
-        <h2>🕐 Recent Emission Records</h2>
-        <a href="{% url 'history' %}" class="btn btn-primary">View All History</a>
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+        <div class="card-title" style="margin-bottom:0;">Recent emission records</div>
+        <a href="{% url 'history' %}" class="btn btn-ghost btn-sm">View all →</a>
     </div>
     {% if recent_records %}
+    <div class="table-wrap">
     <table>
         <thead>
-            <tr><th>Date</th><th>Activity</th><th>Quantity</th><th>CO₂ (kg)</th><th>Description</th></tr>
+            <tr><th>Date</th><th>Activity</th><th>Quantity</th><th>CO₂ (kg)</th><th>Note</th></tr>
         </thead>
         <tbody>
             {% for r in recent_records %}
             <tr>
-                <td>{{ r.date }}</td>
-                <td>{{ r.activity.activity_name }}</td>
-                <td>{{ r.quantity }} {{ r.activity.unit }}</td>
-                <td>{{ r.emission_amount|floatformat:2 }}</td>
-                <td>{{ r.description|default:"-" }}</td>
+                <td style="font-family:var(--font-mono);">{{ r.date }}</td>
+                <td><strong>{{ r.activity.activity_name }}</strong></td>
+                <td style="font-family:var(--font-mono);">{{ r.quantity }} {{ r.activity.unit }}</td>
+                <td><span class="badge">{{ r.emission_amount|floatformat:2 }}</span></td>
+                <td style="color:var(--text-3);font-style:italic;">{{ r.description|default:"—" }}</td>
             </tr>
             {% endfor %}
         </tbody>
     </table>
+    </div>
     {% else %}
-    <p class="no-data">No records yet. <a href="{% url 'activity' %}">Add your first emission record</a>.</p>
+    <p class="no-data">No records yet. <a href="{% url 'activity' %}">Log your first emission →</a></p>
     {% endif %}
 </div>
+
 {% endblock %}
